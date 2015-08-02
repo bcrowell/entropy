@@ -58,9 +58,10 @@
   // it O(n log n) or something rather than O(n^2). Roughly speaking, we could just test for collisions between balls that
   // are in the same cell, but this won't work correctly in cases where, e.g., ball 1 crosses from cell A into cell B
   // while simultaneously 2 crosses from B into A.
-  // Making cells too small means that we have to make the time step small to avoid errors.
-  // Making it too big leads to inefficiency;
-  var desired_balls_per_cell = 1; // ... so try to guess what's a reasonable size
+  // Making cells too small means that we have to make the time step small to avoid errors, or, with a fixed time step,
+  // fast-moving balls can zip their way past what should have been a collision.
+  // Making cells too big leads to inefficiency;
+  var desired_balls_per_cell = 100; // ... so try to guess what's a reasonable size
   var ncell = new Object; // has members .x and .y; set by compute_cell_size, which is called by initialize()
   function compute_cell_size(ncell,box_size,n,desired_balls_per_cell) {
     var w = Math.sqrt(box_size.x * box_size.y * desired_balls_per_cell / n); // roughly what linear dimension we want
@@ -191,6 +192,7 @@
   }
 
   function initialize() { // code to be run every time we restart the simulation
+    document.getElementById("nparticles").value = n.toString();
     set_screen_scale();
     if (collisions) {
       compute_cell_size(ncell,box_size,n,desired_balls_per_cell);
