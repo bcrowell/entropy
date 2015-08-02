@@ -12,7 +12,19 @@
  
   <p id="message"></p> <!-- content is set by display_message() -->
   <p>
-    <canvas id='animation_canvas'  ></canvas>
+    <table>
+      <tr>
+        <td>
+          <canvas id='animation_canvas'  ></canvas>
+        </td>
+        <td>
+          <button id='pause'>Pause</button><br>
+          <button id='reverse'>Reverse velocities</button><br>
+          Particles: <input type="text" id="nparticles" size="7"><br>
+          <button id='initialize'>Initialize</button><br>
+        </td>
+      </tr>
+    </table>
   </p>
   <p>
     <canvas id='graph_canvas'  ></canvas>

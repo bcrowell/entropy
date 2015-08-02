@@ -14,6 +14,8 @@
   }
 
   var n = 50; // number of particles
+  document.getElementById("nparticles").value = n.toString();
+  var MAX_TIME = 600; // in seconds; be well-behaved, and don't eat up CPU forever
 
   // if invoked with url like velocity.html?foo, we use the query string foo for options
   var url = window.location.href;
@@ -50,6 +52,32 @@
   var c = animation_canvas.getContext("2d");
   var cg = graph_canvas.getContext("2d");
 
+  document.getElementById("pause").addEventListener('click',handle_pause_button,false);
+  document.getElementById("reverse").addEventListener('click',handle_reverse_button,false);
+  document.getElementById("initialize").addEventListener('click',handle_initialize_button,false);
+
+  function handle_initialize_button() {
+    n = parseInt(document.getElementById("nparticles").value);
+    stop_animation();
+    initialize();
+  }
+
+  function handle_pause_button() {
+    if (animation_is_active) {
+      stop_animation();
+    }
+    else {
+      start_animation();
+    }
+  }
+
+  function handle_reverse_button() {
+    for (var i=0; i<vx.length; i++) {
+      vx[i] = -vx[i];
+      vy[i] = -vy[i];
+    }
+  }
+
   var TIME_INTERVAL = 30; // milliseconds; time interval for animation
   var t = 0;
   var graph_points = [];
@@ -64,19 +92,26 @@
   var animation_is_active = false;
   var interval_id = -1; // for setInterval and clearInterval
 
-  function start_animation() {
+  function start_animation() { // starts or restarts motion, but doesn't initialize it
     animation_is_active = true;
     interval_id = setInterval(handle_interval_timer,TIME_INTERVAL);
+    document.getElementById("pause").innerHTML = "Pause";
   }
+
   function stop_animation() {
     animation_is_active = false;
     if (interval_id != -1) {clearInterval(interval_id);}
+    document.getElementById("pause").innerHTML = "Resume";
   }
+
   function initialize() { // code to be run every time we restart the simulation
     for (var i=0; i<n; i++) {
       x[i] = Math.random();
       y[i] = Math.random();
-      var v = 0.02*(1+Math.random()); // if some move very slowly, equilibration takes forever
+      // If some molecules move very slowly, equilibration takes forever. Use a Maxwellian, which is physically
+      // natural, and also has low probability of small velocities.
+      var k = -Math.log(1-Math.random()); // kinetic energy, exponentially distributed
+      var v = 0.01*Math.sqrt(k); // Maxwellian distribution
       var theta = Math.random()*2*Math.PI;
       vx[i] = v*Math.cos(theta);
       vy[i] = v*Math.sin(theta);
@@ -86,12 +121,13 @@
     graph_points = [[t,n]];
     last_n_left = n;
     redraw();
-    start_animation();
   }
 
   initialize();
+  start_animation();
 
   function handle_interval_timer() {
+    if (t>MAX_TIME*1000) {stop_animation()}
     do_motion();
     redraw();
   }
