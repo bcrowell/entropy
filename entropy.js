@@ -15,6 +15,7 @@
 
   var n = 50; // number of particles
   var MAX_TIME = 600; // in seconds; be well-behaved, and don't eat up CPU forever
+  var screen_scale; // pixels per unit of internal distance
 
   // geometry of the box and balls
   var box_size = new Object;
@@ -92,11 +93,9 @@
       occup[m] = [i,j,i-j,i+j];
     }
     // Normally not very many balls will have changed cells, so the following sorts should be very quick.
-    // for (var m=0; m<n; m++) {console.log("before sort, cell_i["+m+"]="+cell_i[m])} // qwe
     cell_i.sort(function(a,b) {
       if (occup[a][1]!=occup[b][1]) {return occup[a][1]-occup[b][1]} else {return occup[a][0]-occup[b][0]}
     });
-    // for (var m=0; m<n; m++) {console.log("after sort, cell_i["+m+"]="+cell_i[m])} // qwe
     if (cell_i[0]==cell_i[1]) {
       console.log("occup[0]="+occup[0]+", occup[1]="+occup[1]);
       die ("oh, no!"); 
@@ -178,7 +177,21 @@
     document.getElementById("pause").innerHTML = "Resume";
   }
 
+  window.addEventListener('resize',handle_resize_canvas,false);
+  function handle_resize_canvas() {
+    set_screen_scale();
+    redraw();
+  }
+
+  // We call this initially. Scale can also change because (1) the user resizes the browser window,
+  // or (2) the user changes the radius of the balls (internal coords only map to the part of the window
+  // that doesn't include the border of width equal to the radius).
+  function set_screen_scale() {
+    screen_scale = animation_canvas.height/(box_size.y+2*ball_radius);
+  }
+
   function initialize() { // code to be run every time we restart the simulation
+    set_screen_scale();
     if (collisions) {
       compute_cell_size(ncell,box_size,n,desired_balls_per_cell);
       for (var m=0; m<n; m++) {
@@ -225,9 +238,33 @@
 
   function check_for_collision(x,y,vx,vy,l,m) {
     var diam = 2*ball_radius;
-    if (Math.abs(x[l]-x[m])<diam && Math.abs(y[l]-y[m])<diam) {
-      console.log("collision at x="+x[l]+", y="+y[l]+", balls "+l+" "+m);
+    var x1 = x[l];
+    var y1 = y[l];
+    var x2 = x[m];
+    var y2 = y[m];
+    var bx = x2-x1; // current radius vector
+    var by = y2-y1;
+    if (Math.abs(bx)<diam && Math.abs(by)<diam) { // rough check for efficiency
+      var b2 = bx*bx+by*by;
+      if (b2<diam*diam) { // more accurate check
+        // Are they approaching, or receding?
+        var cx = vx[m]-vx[l]; // current rate of change of radius vector
+        var cy = vy[m]-vy[l];
+        if (dot(bx,by,cx,cy)<0) { // approaching
+          // console.log("collision at range="+Math.sqrt(b2)+", diam="+diam+", x,y="+x1+","+y1+", x,y="+x2+","+y2);
+          var vcm_x = .5*(vx[l]+vx[m]); // velocity of center of mass
+          var vcm_y = .5*(vy[l]+vy[m]);
+          vx[l] = 2*vcm_x-vx[l];
+          vy[l] = 2*vcm_y-vy[l];
+          vx[m] = 2*vcm_x-vx[m];
+          vy[m] = 2*vcm_y-vy[m];
+        }
+      }
+      
     }
+  }
+  function dot(x1,y1,x2,y2) {
+    return x1*x2+y1*y2;
   }
 
   function do_motion() {
@@ -290,10 +327,10 @@
     c.fillRect(0,0,w/2,h);
     c.fillStyle = "#ccccff";
     c.fillRect(w/2,0,w/2,h);
-    var r = ball_radius*h/box_size.y; // radius of dots
+    var r = ball_radius*screen_scale; // radius of dots
     for (var i=0; i<n; i++) {
-      xx = r+x[i]*(w-2*r)/2;
-      yy = r+y[i]*(h-2*r);
+      xx = r+x[i]*screen_scale;
+      yy = r+y[i]*screen_scale;
       c.beginPath();
       c.arc(xx,yy,r, 0,2*Math.PI,false);
       c.fillStyle = 'black';
