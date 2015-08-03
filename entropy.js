@@ -14,8 +14,12 @@
   }
 
   var n = 50; // number of particles
-  var MAX_TIME = 600; // in seconds; be well-behaved, and don't eat up CPU forever
+  var max_time = 10*60; // in seconds; be well-behaved, and don't eat up CPU forever
   var screen_scale; // pixels per unit of internal distance
+  var collisions = true; // Simulate collisions? If not, then this is a noninteracting gas, and the following 
+                         // data structures are not actually used.
+  var draw_graphs = true;
+  var flock = false; // Do an alternative demonstration in which the balls are all initially moving in the same direction.
 
   // geometry of the box and balls
   var box_size = new Object;
@@ -48,11 +52,31 @@
         ball_radius = parseFloat(value);
         recognized = true;
       }
+      if (option=="nocoll") {
+        collisions = false;
+        recognized = true;
+      }
+      if (option=="flock") {
+        flock = true;;
+        recognized = true;
+        draw_graphs = false;
+      }
+      if (option=="graphs") {
+        draw_graphs = true;
+        recognized = true;
+      }
+      if (option=="nographs") {
+        draw_graphs = false;
+        recognized = true;
+      }
+      if (option=="max_time") {
+        max_time = parseFloat(value)*60;
+        recognized = true;
+      }
     }
   }
 
-  var collisions = true; // Simulate collisions? If not, then this is a noninteracting gas, and the following 
-                         // data structures are not actually used.
+  // Data structures for efficiently finding impending collisions.
   // We divide the billiard table up into squarish cells and keep track of which ball is in which cell.
   // We only look for collisions between balls that are in the same or adjacent cells, which makes
   // it O(n log n) or something rather than O(n^2). Roughly speaking, we could just test for collisions between balls that
@@ -124,7 +148,8 @@
 
   var animation_canvas = document.getElementById('animation_canvas');
   var c = animation_canvas.getContext("2d");
-  var cg = graph_canvas.getContext("2d");
+  var cg;
+  if (draw_graphs) {cg = graph_canvas.getContext("2d");}
 
   document.getElementById("pause").addEventListener('click',handle_pause_button,false);
   document.getElementById("reverse").addEventListener('click',handle_reverse_button,false);
@@ -154,14 +179,15 @@
 
   var TIME_INTERVAL = 30; // milliseconds; time interval for animation
   var t = 0;
+  var timer = 0; // pause animation when this reaches max_time
   var graph_points = [];
   var last_n_left;
 
   // coordinates are 0<=x<=2, 0<=y<=1
-  var x = filled_array(n,0.0);
-  var y = filled_array(n,0.0);
-  var vx = filled_array(n,0.0);
-  var vy = filled_array(n,0.0);
+  var x = [];
+  var y = [];
+  var vx = [];
+  var vy = [];
 
   var animation_is_active = false;
   var interval_id = -1; // for setInterval and clearInterval
@@ -170,6 +196,7 @@
     animation_is_active = true;
     interval_id = setInterval(handle_interval_timer,TIME_INTERVAL);
     document.getElementById("pause").innerHTML = "Pause";
+    timer = 0;
   }
 
   function stop_animation() {
@@ -205,17 +232,25 @@
       }
       assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,n,x,y,box_size,ncell);
     }
-    for (var i=0; i<n; i++) {
-      x[i] = Math.random();
-      y[i] = Math.random();
-      // If some molecules move very slowly, equilibration takes forever. Use a Maxwellian, which is physically
-      // natural, and also has low probability of small velocities.
-      var k = -Math.log(1-Math.random()); // kinetic energy, exponentially distributed
-      var v = 0.01*Math.sqrt(k); // Maxwellian distribution
-      var theta = Math.random()*2*Math.PI;
-      vx[i] = v*Math.cos(theta);
-      vy[i] = v*Math.sin(theta);
-      // console.log("v="+Math.sqrt(vx[i]*vx[i]+vy[i]+vy[i]));
+    redraw_background(c,animation_canvas.width,animation_canvas.height); // prepare to draw the balls as we place them
+    var fails = new Object;
+    fails.max = 10000; // maximum total number of attempts to place balls without having it overlap another ball;
+                       // once we do a cumulative number of tries greater than this, we just give up and start
+                       // placing them wherever
+    fails.so_far = 0;
+    x = []; y = [];
+    if (flock) {
+      place_balls(n,x,y,0.5*0.33*box_size.x,0.33*box_size.y,0.5*0.67*box_size.x,0.67*box_size.y,ball_radius,fails);
+    }
+    else {
+      place_balls(n,x,y,0,0,0.5*box_size.x,box_size.y,ball_radius,fails);
+    }
+    vx = []; vy = [];
+    if (flock) {
+      initialize_motion(n,0.01,vx,vy,1,1,0.1);
+    }
+    else {
+      initialize_motion(n,0.01,vx,vy);
     }
     t = 0;
     graph_points = [[t,n]];
@@ -223,19 +258,64 @@
     redraw();
   }
 
+  function place_balls(n,x,y,xmin,ymin,xmax,ymax,ball_radius,fails) {
+    while (x.length<n) {
+      var diam = 2*ball_radius;
+      for (;;) {
+        xx = Math.random()*(xmax-xmin)+xmin;
+        yy = Math.random()*(ymax-ymin)+ymin;
+        if (fails.so_far>fails.max) {break}
+        // console.log("placing ball "+x.length);
+        var bad = false;
+        for (var j=0; j<i; j++) {
+          if (balls_overlap(xx-x[j],yy-y[j],diam)) {bad=true; break}
+        }
+        if (!bad) {break}
+        ++fails.so_far;
+      }
+      x.push(xx);
+      y.push(yy);
+      draw_balls(c,animation_canvas.width,animation_canvas.height,i,i);
+    }
+  }
+
+  function initialize_motion(n,scale,vx,vy,force_vx,force_vy,pert) { // the final 3 args are for "flock" mode, and are optional
+    while (vx.length<n) {
+      if (typeof(force_vx)==='undefined') {
+        // If some molecules move very slowly, equilibration takes forever. Use a Maxwellian, which is physically
+        // natural, and also has low probability of small velocities.
+        var k = -Math.log(1-Math.random()); // kinetic energy, exponentially distributed
+        var v = scale*Math.sqrt(k); // Maxwellian distribution
+        var theta = Math.random()*2*Math.PI;
+        vx.push(v*Math.cos(theta));
+        vy.push(v*Math.sin(theta));
+        // console.log("v="+Math.sqrt(vx[i]*vx[i]+vy[i]+vy[i]));
+      }
+      else {
+        vx.push(scale*(force_vx+pert*Math.random()));
+        vy.push(scale*(force_vy+pert*Math.random()));
+      }
+    }
+  }
+
   initialize();
   start_animation();
 
   function handle_interval_timer() {
-    if (t>MAX_TIME*1000) {stop_animation()}
+    if (timer>max_time*1000) {stop_animation()}
     do_motion();
     redraw();
   }
 
   function reflect_into(x,v,lo,hi) {
-    if (x<lo) {return [lo+lo-x,-v];}
+    if (x<lo) {return [lo+lo-x,  -v];}
     if (x>hi) {return [hi-(x-hi),-v];}
     return [x,v];
+  }
+
+  function balls_overlap(dx,dy,diam) {
+    if (Math.abs(dx)>diam || Math.abs(dy)>diam) { return false } // // rough check for efficiency
+    return (dx*dx+dy*dy < diam*diam);
   }
 
   function check_for_collision(x,y,vx,vy,l,m) {
@@ -246,23 +326,18 @@
     var y2 = y[m];
     var bx = x2-x1; // current radius vector
     var by = y2-y1;
-    if (Math.abs(bx)<diam && Math.abs(by)<diam) { // rough check for efficiency
-      var b2 = bx*bx+by*by;
-      if (b2<diam*diam) { // more accurate check
-        // Are they approaching, or receding?
-        var cx = vx[m]-vx[l]; // current rate of change of radius vector
-        var cy = vy[m]-vy[l];
-        if (dot(bx,by,cx,cy)<0) { // approaching
-          // console.log("collision at range="+Math.sqrt(b2)+", diam="+diam+", x,y="+x1+","+y1+", x,y="+x2+","+y2);
-          var vcm_x = .5*(vx[l]+vx[m]); // velocity of center of mass
-          var vcm_y = .5*(vy[l]+vy[m]);
-          vx[l] = 2*vcm_x-vx[l];
-          vy[l] = 2*vcm_y-vy[l];
-          vx[m] = 2*vcm_x-vx[m];
-          vy[m] = 2*vcm_y-vy[m];
-        }
+    if (balls_overlap(bx,by,diam)) {
+      // Are they approaching, or receding?
+      var cx = vx[m]-vx[l]; // current rate of change of radius vector
+      var cy = vy[m]-vy[l];
+      if (dot(bx,by,cx,cy)<0) { // approaching
+        var vcm_x = .5*(vx[l]+vx[m]); // velocity of center of mass
+        var vcm_y = .5*(vy[l]+vy[m]);
+        vx[l] = 2*vcm_x-vx[l];
+        vy[l] = 2*vcm_y-vy[l];
+        vx[m] = 2*vcm_x-vx[m];
+        vy[m] = 2*vcm_y-vy[m];
       }
-      
     }
   }
   function dot(x1,y1,x2,y2) {
@@ -312,6 +387,7 @@
       if (x[i]<box_size.x/2) {++n_left}
     }
     t += TIME_INTERVAL;
+    timer += TIME_INTERVAL;
     if (n_left!=last_n_left) {
       // console.log("n_left="+n_left);
       last_n_left=n_left;
@@ -321,16 +397,19 @@
 
   function redraw() {
     redraw_animation(c,animation_canvas.width,animation_canvas.height);
-    redraw_graph(cg,graph_canvas.width,graph_canvas.height);
+    if (draw_graphs) {redraw_graph(cg,graph_canvas.width,graph_canvas.height)}
   }
 
   function redraw_animation(c,w,h) {
-    c.fillStyle = "#ffcccc";
-    c.fillRect(0,0,w/2,h);
-    c.fillStyle = "#ccccff";
-    c.fillRect(w/2,0,w/2,h);
+    redraw_background(c,w,h);
+    draw_balls(c,w,h);
+  }
+
+  function draw_balls(c,w,h,n1,n2) { // n1 and n2 are optional
+    if (typeof(n1)==='undefined') {n1=0}
+    if (typeof(n2)==='undefined') {n2=n-1}
     var r = ball_radius*screen_scale; // radius of dots
-    for (var i=0; i<n; i++) {
+    for (var i=n1; i<=n2; i++) {
       xx = r+x[i]*screen_scale;
       yy = r+y[i]*screen_scale;
       c.beginPath();
@@ -339,6 +418,13 @@
       c.fill();
       c.lineWidth = 5;
     }
+  }
+
+  function redraw_background(c,w,h) {
+    c.fillStyle = "#ffcccc";
+    c.fillRect(0,0,w/2,h);
+    c.fillStyle = "#ccccff";
+    c.fillRect(w/2,0,w/2,h);
   }
 
   function redraw_graph(c,w,h) {
