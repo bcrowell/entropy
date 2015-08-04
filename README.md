@@ -31,7 +31,24 @@ and 42 and 137 their values.
 * nographs - Don't draw the graphs.
 * graphs - Draw the graphs (is the default unless flock is set).
 * flock - Do an alternative demonstration in which the balls are all initially moving in the same direction.
+* temps - Do an alternative demonstration in which the balls on the two sides of the box are initially
+           at different temperatures.
 * max_time - Maximum time, in minutes, for which the simulation will run (default=10).
+* torus - Use the topology of a torus, i.e., balls that go off one side of the box "wrap around."
+* gx - a numerical value for gravity in the x direction (default=0)
+* gy - similar for y
+* island - put an island in the middle of the box, as in Sinai's billiards
+
+Getting ergodic behavior
+========================
+With the simplest default settings, the system is not ergodic. You can clearly see this
+behavior in flock mode, where the flock of balls never leaves its one tiny phase-space
+cell in momentum. One method of getting ergodic behavior is to use the island option.
+Another method that seems to work is to use nonzero values of both gx and gy.
+
+To do
+=====
+In temps mode, graph the temperatures of the two sides.
 
 Gory details
 ============
@@ -54,3 +71,5 @@ Bugs
 ====
 The balls rebound from the right side of the box a little before they should;
 an empty strip exists with a width equal to the diameter of the balls.
+
+The labels on the axes of the graph don't show up.

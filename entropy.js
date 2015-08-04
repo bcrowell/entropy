@@ -20,13 +20,23 @@
                          // data structures are not actually used.
   var draw_graphs = true;
   var flock = false; // Do an alternative demonstration in which the balls are all initially moving in the same direction.
+  var temps = false; // Do an alternative demonstration in which the balls are initially at two different temperatures.
+  var torus = false;
+  var use_gravity = false;
+  var gravity_x = 0.0;
+  var gravity_y = 0.0;
+  var island = false;
 
   // geometry of the box and balls
   var box_size = new Object;
   box_size.x = 2.0; // width
   box_size.y = 1.0; // height
-  ball_radius = 0.012; // in same units as box size; determines size they're drawn with, and also, if collisions
+  var ball_radius = 0.012; // in same units as box size; determines size they're drawn with, and also, if collisions
                        // are turned on, the range of the hard-core interaction
+  // The following are irrelevant in the default case where island is false.
+  var island_x = box_size.x/2;
+  var island_y = box_size.y/2;
+  var island_r = box_size.y/6;
 
   // if invoked with url like velocity.html?foo, we use the query string foo for options
   var url = window.location.href;
@@ -57,7 +67,12 @@
         recognized = true;
       }
       if (option=="flock") {
-        flock = true;;
+        flock = true;
+        recognized = true;
+        draw_graphs = false;
+      }
+      if (option=="temps") {
+        temps = true;
         recognized = true;
         draw_graphs = false;
       }
@@ -71,6 +86,24 @@
       }
       if (option=="max_time") {
         max_time = parseFloat(value)*60;
+        recognized = true;
+      }
+      if (option=="gx") {
+        use_gravity = true;
+        gravity_x = parseFloat(value);
+        recognized = true;
+      }
+      if (option=="gy") {
+        use_gravity = true;
+        gravity_y = parseFloat(value);
+        recognized = true;
+      }
+      if (option=="torus") {
+        torus = true;
+        recognized = true;
+      }
+      if (option=="island") {
+        island = true;
         recognized = true;
       }
     }
@@ -239,19 +272,24 @@
                        // placing them wherever
     fails.so_far = 0;
     x = []; y = [];
-    if (flock) {
+    var mode = 'normal';
+    if (flock) {mode = 'flock'}
+    if (temps) {mode = 'temps'}
+    if (mode=='normal') {
+      place_balls(n,x,y,0,0,0.5*box_size.x,box_size.y,ball_radius,fails);
+      did = true;
+    }
+    if (mode=='flock') {
       place_balls(n,x,y,0.5*0.33*box_size.x,0.33*box_size.y,0.5*0.67*box_size.x,0.67*box_size.y,ball_radius,fails);
     }
-    else {
-      place_balls(n,x,y,0,0,0.5*box_size.x,box_size.y,ball_radius,fails);
+    if (mode=='temps') {
+      place_balls(n,x,y,0,0,box_size.x,box_size.y,ball_radius,fails);
     }
+    var v_options = new Object;
+    if (mode=='flock') {v_options.vx = -1; v_options.vy = -0.777; }
+    if (mode=='temps') {v_options.x = x; }
     vx = []; vy = [];
-    if (flock) {
-      initialize_motion(n,0.01,vx,vy,1,1,0.1);
-    }
-    else {
-      initialize_motion(n,0.01,vx,vy);
-    }
+    initialize_motion(n,0.01,vx,vy,mode,v_options);
     t = 0;
     graph_points = [[t,n]];
     last_n_left = n;
@@ -262,8 +300,11 @@
     while (x.length<n) {
       var diam = 2*ball_radius;
       for (;;) {
-        xx = Math.random()*(xmax-xmin)+xmin;
-        yy = Math.random()*(ymax-ymin)+ymin;
+        for (;;) {
+          xx = Math.random()*(xmax-xmin)+xmin;
+          yy = Math.random()*(ymax-ymin)+ymin;
+          if (!is_in_island(xx,yy)) {break}
+        }
         if (fails.so_far>fails.max) {break}
         // console.log("placing ball "+x.length);
         var bad = false;
@@ -279,23 +320,53 @@
     }
   }
 
-  function initialize_motion(n,scale,vx,vy,force_vx,force_vy,pert) { // the final 3 args are for "flock" mode, and are optional
+  function is_in_island(x,y) {
+    if (!island) {return false}
+    dx = x-island_x;
+    dy = y-island_y;
+    var rr = island_r+ball_radius;
+    if (Math.abs(dx)>rr || Math.abs(dy)>rr) {return false} // quick check for efficiency
+    return (dx*dx+dy*dy<rr*rr);
+  }
+
+  function initialize_motion(n,scale,vx,vy,mode,options) {
+    var i = 0;
     while (vx.length<n) {
-      if (typeof(force_vx)==='undefined') {
-        // If some molecules move very slowly, equilibration takes forever. Use a Maxwellian, which is physically
-        // natural, and also has low probability of small velocities.
-        var k = -Math.log(1-Math.random()); // kinetic energy, exponentially distributed
-        var v = scale*Math.sqrt(k); // Maxwellian distribution
-        var theta = Math.random()*2*Math.PI;
-        vx.push(v*Math.cos(theta));
-        vy.push(v*Math.sin(theta));
-        // console.log("v="+Math.sqrt(vx[i]*vx[i]+vy[i]+vy[i]));
+      if (mode=='normal') {
+        v = new Object;
+        random_maxwellian(v,scale);
+        vx.push(v.x);
+        vy.push(v.y);
       }
-      else {
-        vx.push(scale*(force_vx+pert*Math.random()));
-        vy.push(scale*(force_vy+pert*Math.random()));
+      if (mode=='temps') {
+        v = new Object;
+        var temp;
+        if (options.x[i++]<0.5*box_size.x) {
+          temp = 0.2; // cold side
+        }
+        else {
+          temp = 1; // hot side
+        }
+        random_maxwellian(v,scale*temp);
+        vx.push(v.x);
+        vy.push(v.y);
+      }
+      if (mode=='flock') {
+        var pert = 0.0; // small random perturbation; if using this, about 0.1 is good
+        vx.push(scale*(options.vx+pert*(Math.random()-0.5)));
+        vy.push(scale*(options.vy+pert*(Math.random()-0.5)));
       }
     }
+  }
+
+  function random_maxwellian(v,scale) {
+    // If some molecules move very slowly, equilibration takes forever. Use a Maxwellian, which is physically
+    // natural, and also has low probability of small velocities.
+    var k = -Math.log(1-Math.random()); // kinetic energy, exponentially distributed
+    var speed = scale*Math.sqrt(k); // Maxwellian distribution
+    var theta = Math.random()*2*Math.PI;
+    v.x = speed*Math.cos(theta);
+    v.y = speed*Math.sin(theta);
   }
 
   initialize();
@@ -308,9 +379,38 @@
   }
 
   function reflect_into(x,v,lo,hi) {
-    if (x<lo) {return [lo+lo-x,  -v];}
-    if (x>hi) {return [hi-(x-hi),-v];}
-    return [x,v];
+    if (x>lo && x<hi) { return [x,v] }
+    if (x<lo) {
+      if (torus) {
+        return [hi-(lo-x), v];
+      }
+      else {
+        return [lo+lo-x,  -v];
+      }
+    }
+    if (x>hi) {
+      if (torus) {
+        return [lo+x-hi, v];
+      }
+      else {
+        return [hi-(x-hi),-v];
+      }
+    }
+  }
+
+  // x2=x=m
+  function reflect_from_island(ix,iy,ir,x,y,vx,vy) {
+    if (!is_in_island(x,y)) {return [x,y,vx,vy]}
+    var bx = x-ix; // current radius vector
+    var by = y-iy;
+    if (dot(bx,by,vx,vy)>0) { return [x,y,vx,vy]} // receding
+    var theta = Math.atan2(by,bx);
+    var phi = Math.atan2(vy,vx);
+    var phi2 = -phi+2*theta+Math.PI;
+    var v = Math.sqrt(vx*vx+vy*vy);
+    vx = v*Math.cos(phi2);
+    vy = v*Math.sin(phi2);
+    return [x,y,vx,vy];
   }
 
   function balls_overlap(dx,dy,diam) {
@@ -384,6 +484,10 @@
       r = reflect_into(y[i]+vy[i],vy[i],0,box_size.y);
       y[i] = r[0];
       vy[i] = r[1];
+      if (island) {
+        r = reflect_from_island(island_x,island_y,island_r,x[i],y[i],vx[i],vy[i]);
+        x[i] = r[0]; y[i] = r[1]; vx[i] = r[2]; vy[i] = r[3];
+      }
       if (x[i]<box_size.x/2) {++n_left}
     }
     t += TIME_INTERVAL;
@@ -392,6 +496,12 @@
       // console.log("n_left="+n_left);
       last_n_left=n_left;
       graph_points.push([t,n_left]);
+    }
+    if (use_gravity) {
+      for (var i=0; i<n; i++) {
+        vx[i] = vx[i]+gravity_x*TIME_INTERVAL/1000.0;
+        vy[i] = vy[i]+gravity_y*TIME_INTERVAL/1000.0;
+      }
     }
   }
 
@@ -425,6 +535,12 @@
     c.fillRect(0,0,w/2,h);
     c.fillStyle = "#ccccff";
     c.fillRect(w/2,0,w/2,h);
+    if (island) {
+      c.beginPath();
+      c.arc((island_x+ball_radius)*screen_scale,(island_y+ball_radius)*screen_scale,island_r*screen_scale, 0,2*Math.PI,false);
+      c.fillStyle = 'white';
+      c.fill();
+    }
   }
 
   function redraw_graph(c,w,h) {
