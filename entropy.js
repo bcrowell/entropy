@@ -4,6 +4,7 @@
 
   function die(message) {
     throw new Error(message);
+    stop_animation(); // Why doesn't throwing the error already terminate the program?
   }
   function display_message(m) {
     document.getElementById("message").innerHTML = m;
@@ -26,6 +27,7 @@
   var gravity_x = 0.0;
   var gravity_y = 0.0;
   var island = false;
+  var wait = false; // wait for the user to click to start the simulation
 
   // geometry of the box and balls
   var box_size = new Object;
@@ -106,7 +108,13 @@
         island = true;
         recognized = true;
       }
+      if (option=="wait") {
+        wait = true;
+        document.getElementById("pause").innerHTML = "Start";
+        recognized = true;
+      }
     }
+    if (!recognized) {console.log("unrecognized option "+option)}
   }
 
   // Data structures for efficiently finding impending collisions.
@@ -210,16 +218,16 @@
     }
   }
 
-  var TIME_INTERVAL = 30; // milliseconds; time interval for animation
-  var t = 0;
-  var timer = 0; // pause animation when this reaches max_time
+  var TIME_INTERVAL = 0.03; // seconds; time interval for animation
+  var t = 0; // total elapsed time, in seconds
+  var timer = 0; // pause animation when this reaches max_time, then restart this timer; units of seconds
   var graph_points = [];
   var last_n_left;
 
   // coordinates are 0<=x<=2, 0<=y<=1
-  var x = [];
+  var x = []; // unitless
   var y = [];
-  var vx = [];
+  var vx = []; // units of 1/s
   var vy = [];
 
   var animation_is_active = false;
@@ -227,7 +235,7 @@
 
   function start_animation() { // starts or restarts motion, but doesn't initialize it
     animation_is_active = true;
-    interval_id = setInterval(handle_interval_timer,TIME_INTERVAL);
+    interval_id = setInterval(handle_interval_timer,TIME_INTERVAL*1000);
     document.getElementById("pause").innerHTML = "Pause";
     timer = 0;
   }
@@ -289,7 +297,7 @@
     if (mode=='flock') {v_options.vx = -1; v_options.vy = -0.777; }
     if (mode=='temps') {v_options.x = x; }
     vx = []; vy = [];
-    initialize_motion(n,0.01,vx,vy,mode,v_options);
+    initialize_motion(n,0.3,vx,vy,mode,v_options);
     t = 0;
     graph_points = [[t,n]];
     last_n_left = n;
@@ -330,6 +338,7 @@
   }
 
   function initialize_motion(n,scale,vx,vy,mode,options) {
+    // scale is a typical velocity scale, in units of s^-1
     var i = 0;
     while (vx.length<n) {
       if (mode=='normal') {
@@ -370,10 +379,10 @@
   }
 
   initialize();
-  start_animation();
+  if (!wait) {start_animation()}
 
   function handle_interval_timer() {
-    if (timer>max_time*1000) {stop_animation()}
+    if (timer>max_time) {stop_animation()}
     do_motion();
     redraw();
   }
@@ -413,43 +422,75 @@
     return [x,y,vx,vy];
   }
 
-  function balls_overlap(dx,dy,diam) {
-    if (Math.abs(dx)>diam || Math.abs(dy)>diam) { return false } // // rough check for efficiency
-    return (dx*dx+dy*dy < diam*diam);
-  }
-
-  function check_for_collision(x,y,vx,vy,l,m) {
-    var diam = 2*ball_radius;
+  // If the balls are going to collide within time dt, simulate their motion through dt, including
+  // both their motion up to the collision and their motion after that. Return true.
+  // If they're not going to collide, do nothing and return false.
+  function check_for_collision(x,y,vx,vy,l,m,dt,diam) {
     var x1 = x[l];
     var y1 = y[l];
     var x2 = x[m];
     var y2 = y[m];
     var bx = x2-x1; // current radius vector
     var by = y2-y1;
-    if (balls_overlap(bx,by,diam)) {
-      // Are they approaching, or receding?
-      var cx = vx[m]-vx[l]; // current rate of change of radius vector
-      var cy = vy[m]-vy[l];
-      if (dot(bx,by,cx,cy)<0) { // approaching
-        var vcm_x = .5*(vx[l]+vx[m]); // velocity of center of mass
-        var vcm_y = .5*(vy[l]+vy[m]);
-        vx[l] = 2*vcm_x-vx[l];
-        vy[l] = 2*vcm_y-vy[l];
-        vx[m] = 2*vcm_x-vx[m];
-        vy[m] = 2*vcm_y-vy[m];
-      }
-    }
+    // Are they approaching, or receding?
+    var cx = vx[m]-vx[l]; // current rate of change of radius vector
+    var cy = vy[m]-vy[l];
+    var bc = dot(bx,by,cx,cy); // dot product of b with c, i.e., of rel. r vector with rel. v vector
+    if (bc>=0) {return false} // receding
+    // Find out whether they will touch, and if so, the time interval tt after which they will touch.
+    // r=b+ct; setting r^2=diam^2 gives a quadratic At^2+Bt+C
+    var c2 = magnitude_squared(cx,cy);
+    var aa = c2; // A
+    var bb = 2*bc; // B
+    var cc = magnitude_squared(bx,by)-diam*diam; // C
+    var discrim = bb*bb-4*aa*cc;
+    if (discrim<0) {return false} // they miss
+    var tt = (-bb-Math.sqrt(discrim))/(2*aa); // the solution with - sign is the earlier time
+    if (tt>dt) {return false} // they'll collide, but not within this time interval
+    // Move them to the point of collision.
+    // Note that tt may be negative, in which case the balls have already impinged on each other. That's
+    // OK. In that case, we're walking them back to before the collision.
+    x[l] = x[l]+vx[l]*tt;
+    y[l] = y[l]+vy[l]*tt;
+    x[m] = x[m]+vx[m]*tt;
+    y[m] = y[m]+vy[m]*tt;
+    // Do the collision.
+    var vcm_x = .5*(vx[l]+vx[m]); // velocity of center of mass
+    var vcm_y = .5*(vy[l]+vy[m]);
+    vx[l] = 2*vcm_x-vx[l];
+    vy[l] = 2*vcm_y-vy[l];
+    vx[m] = 2*vcm_x-vx[m];
+    vy[m] = 2*vcm_y-vy[m];
+    // Move them beyond the collision
+    x[l] = x[l]+vx[l]*(dt-tt);
+    y[l] = y[l]+vy[l]*(dt-tt);
+    x[m] = x[m]+vx[m]*(dt-tt);
+    y[m] = y[m]+vy[m]*(dt-tt);
+    return true;
   }
+
+  function balls_overlap(dx,dy,diam) {
+    if (Math.abs(dx)>diam || Math.abs(dy)>diam) { return false } // // rough check for efficiency
+    return (dx*dx+dy*dy < diam*diam);
+  }
+
   function dot(x1,y1,x2,y2) {
     return x1*x2+y1*y2;
   }
 
+  function magnitude_squared(x,y) {
+    return dot(x,y,x,y);
+  }
+
   function do_motion() {
+    var collided = new Object; // associative array listing indices of balls that collided and therefore already had
+                               // their motion modeled
     if (collisions) {
       assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,n,x,y,box_size,ncell);
       var coll = []; // compile a list of pairs that may possibly collide because they're in the same or adjacent cells
       // The nested loops over (p,q) are not O(n^2), because we break out of the inner loop early.
       // (l,m) are indices of two balls that may collide.
+      var diam = 2*ball_radius;
       for (var stripe=0; stripe<=3; stripe++) { // 0=i, 1=j, 2=u, 3=v
         done = false;
         var s2;
@@ -469,7 +510,10 @@
             if (ff != f) {done=true; break}
             if (ee>e+1) {done=true; break}
             if (e==ee && stripe>0) {continue} // same cell, and already handled at stripe==0
-            check_for_collision(x,y,vx,vy,l,m);
+            if (check_for_collision(x,y,vx,vy,l,m,TIME_INTERVAL,diam)) {
+              collided[p] = 1;
+              collided[q] = 1;
+            }
           }
           if (done) {break}
         }
@@ -478,10 +522,14 @@
     var n_left = 0;
     for (var i=0; i<n; i++) {
       var r;
-      r = reflect_into(x[i]+vx[i],vx[i],0,box_size.x);
+      if (!collided[i]) { // If they collided, then we already modeled their motion.
+        x[i] = x[i]+vx[i]*TIME_INTERVAL;
+        y[i] = y[i]+vy[i]*TIME_INTERVAL;
+      }
+      r = reflect_into(x[i],vx[i],0,box_size.x);
       x[i] = r[0];
       vx[i] = r[1];
-      r = reflect_into(y[i]+vy[i],vy[i],0,box_size.y);
+      r = reflect_into(y[i],vy[i],0,box_size.y);
       y[i] = r[0];
       vy[i] = r[1];
       if (island) {
@@ -499,8 +547,8 @@
     }
     if (use_gravity) {
       for (var i=0; i<n; i++) {
-        vx[i] = vx[i]+gravity_x*TIME_INTERVAL/1000.0;
-        vy[i] = vy[i]+gravity_y*TIME_INTERVAL/1000.0;
+        vx[i] = vx[i]+gravity_x*TIME_INTERVAL;
+        vy[i] = vy[i]+gravity_y*TIME_INTERVAL;
       }
     }
   }

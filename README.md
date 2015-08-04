@@ -19,9 +19,12 @@ Options
 
 In addition to the GUI controls on the screen, which should be self-explanatory,
 there are some options that can be controlled by typing in a URL with something
-like "?foo=42,bar=137" on the end. Here foo and bar would be the names of options,
-and 42 and 137 their values.
+like "?foo,bar=137" on the end. Here foo and bar would be the names of options.
+The option foo is one that we just turn on like a switch, while the option bar
+is one that takes a numerical value for a parameter
 
+* wait - Don't start the simulation immediately. Useful when using the simulation in a classroom
+          demonstration, where we want to be able to explain before things start moving.
 * n - the number of particles
 * r - the radius of the particles (in units of the height of the box)
 * nocoll - Don't model collisions. With this option, the atoms don't interact
@@ -35,7 +38,7 @@ and 42 and 137 their values.
            at different temperatures.
 * max_time - Maximum time, in minutes, for which the simulation will run (default=10).
 * torus - Use the topology of a torus, i.e., balls that go off one side of the box "wrap around."
-* gx - a numerical value for gravity in the x direction (default=0)
+* gx - a numerical value for gravity in the x direction (default=0); units are box height per second squared
 * gy - similar for y
 * island - put an island in the middle of the box, as in Sinai's billiards
 
@@ -46,9 +49,14 @@ behavior in flock mode, where the flock of balls never leaves its one tiny phase
 cell in momentum. One method of getting ergodic behavior is to use the island option.
 Another method that seems to work is to use nonzero values of both gx and gy.
 
+To learn about this sort of thing, the keyword to search on is "dynamical billiards."
+
 To do
 =====
 In temps mode, graph the temperatures of the two sides.
+
+Add pause option so that it starts in paused mode and gives me a time to explain after
+loading a particular link.
 
 Gory details
 ============
