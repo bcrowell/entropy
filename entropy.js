@@ -126,13 +126,13 @@
   // Making cells too small means that we have to make the time step small to avoid errors, or, with a fixed time step,
   // fast-moving balls can zip their way past what should have been a collision.
   // Making cells too big leads to inefficiency;
-  var desired_balls_per_cell = 100; // ... so try to guess what's a reasonable size
+  var desired_balls_per_cell = 1000; // ... so try to guess what's a reasonable size
   var ncell = new Object; // has members .x and .y; set by compute_cell_size, which is called by initialize()
   function compute_cell_size(ncell,box_size,n,desired_balls_per_cell) {
     var w = Math.sqrt(box_size.x * box_size.y * desired_balls_per_cell / n); // roughly what linear dimension we want
     ncell.x = make_natural_number(box_size.x/w);
     ncell.y = make_natural_number(box_size.y/w);
-    // console.log("ncell="+ncell.x+","+ncell.y);
+    console.log("ncell="+ncell.x+","+ncell.y); // qwe
   }
   function make_natural_number(x) {
     var m = Math.round(x);
@@ -199,6 +199,7 @@
   function handle_initialize_button() {
     n = parseInt(document.getElementById("nparticles").value);
     stop_animation();
+    //console.log("handle_initialize_button");
     initialize();
   }
 
@@ -260,6 +261,7 @@
   }
 
   function initialize() { // code to be run every time we restart the simulation
+    // console.log("entering initialize()");
     document.getElementById("nparticles").value = n.toString();
     set_screen_scale();
     if (collisions) {
