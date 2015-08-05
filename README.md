@@ -79,18 +79,18 @@ like "?foo,bar=137" on the end. Here foo and bar would be the names of options.
 The option foo is one that we just turn on like a switch, while the option bar
 is one that takes a numerical value for a parameter
 
-* wait - Don't start the simulation immediately. Useful when using the simulation in a classroom
+* wait - Don't start the simulation until the user clicks on Start. Useful when using the simulation in a classroom
           demonstration, where we want to be able to explain before things start moving.
 * n - the number of particles
 * r - the radius of the particles (in units of the height of the box)
 * nocoll - Don't model collisions. With this option, the atoms don't interact
            at all, and pass through each other like ghosts. This makes the
-           simulation more efficient for large values of n, but causes funky-looking
+           simulation more efficient for large values of n, but e.g., in the default demo it causes funky-looking
            dynamics in the graphs as the system approaches equilibrium.
 * nographs - Don't draw the graphs.
 * graphs - Draw the graphs (is the default unless flock is set).
-* flock - Do an alternative demonstration in which the balls are all initially moving in the same direction.
-* temps - Do an alternative demonstration in which the balls on the two sides of the box are initially
+* flock - Do a demonstration in which the balls are all initially moving in the same direction.
+* temps - Do a demonstration in which the balls on the two sides of the box are initially
            at different temperatures.
 * max_time - Maximum time, in minutes, for which the simulation will run (default=10).
 * torus - Use the topology of a torus, i.e., balls that go off one side of the box "wrap around."
