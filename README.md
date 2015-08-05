@@ -10,7 +10,7 @@ You can run the app by going to the following URL:
 [http://www.lightandmatter.com/entropy](http://www.lightandmatter.com/entropy)
 
 The idea for this app was shamelessly copied from
-[this java applet](http://stp.clarku.edu/simulations/approachtoequilibrium/index.html).
+[this java applet](http://www.compadre.org/stp/items/detail.cfm?ID=8159).
 I was motivated to write my own knock-off using HTML 5 because of hassles relating to
 the current state of java applets.
 
