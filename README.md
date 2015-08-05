@@ -14,6 +14,62 @@ The idea for this app was shamelessly copied from
 I was motivated to write my own knock-off using HTML 5 because of hassles relating to
 the current state of java applets.
 
+Sample demonstrations
+=====================
+
+Each of the following URLs will run the simulation with a certain setup, designed to
+demonstrate the educational point in the subsequent description.
+
+http://www.lightandmatter.com/entropy?wait
+
+The basic demo of free expansion and the second law. Click the Start
+button to see the demonstration run. (This is the reason for the
+"wait" option in this url and the others below; in a lecture, it gives
+time to say something to the class before everything starts moving.)
+On the graphs you can see the system reaching equilibrium and
+fluctuating away from equilibrium. By increasing the number of
+particles you can see that the fluctuations get smaller in relative
+terms. If you hit the "Reverse velocities" button you can see the
+system move back to its initial state, violating the second law. 
+
+http://www.lightandmatter.com/entropy?flock,wait
+
+The particles are all initially concentrated in one region of space
+and moving in the same direction. Because this particular version of
+the system is not ergodic, thermal equilibrium is never reached.
+Although the flock spreads out spatially due to collisions, it remains
+confined to a small portion of the phase space in terms of momentum.
+This doesn't violate the second law, since the second law doesn't
+demand that the entropy increase at any nonzero rate. 
+
+http://www.lightandmatter.com/entropy?gy=2,flock,wait
+
+Adding gravity in the y direction breaks part of the system's
+unrealistically perfect symmetry and causes the y momentum to
+equilibrate. 
+
+http://www.lightandmatter.com/entropy?gx=3,gy=2,flock,wait
+
+Adding an x component to gravity makes all the degrees of freedom
+equilibrate. 
+
+http://www.lightandmatter.com/entropy?island,flock,wait
+
+Another way of getting rid of the non-ergodic behavior is to add a
+circular island in the middle of the box. This is known as Sinai's
+billiards. The island acts as a diverging lens. 
+
+http://www.lightandmatter.com/entropy?temps,n=300,wait
+
+The whole box is uniformly filled with particles, but with unequal
+temperatures on the two sides
+
+http://www.lightandmatter.com/entropy?temps,n=300,wait,mark
+
+By adding ",mark" to any of these URLs, you can cause one of the
+particles to be marked in red. This allows you to look at ideas like
+diffusion and the mean free path. 
+
 Options
 =======
 
