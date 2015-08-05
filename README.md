@@ -1,13 +1,9 @@
 Entropy
 =======
 
-A browser-based application that shows an ideal gas expanding freely
-when a partition is removed between the two sides of a box.
-The atoms are modeled as hard billiard balls that collide elastically.
-Because the gas is ideal, the temperature stays the same during the expansion
-while the entropy increases.
-Graphs on the bottom show the evolution of the number of particles
-in each side over time.
+This is a browser-based educational application that simulates an ideal gas consisting
+of identical, classical, hard spheres moving around inside a two-dimensional box.
+All collisions are perfectly elastic.
 
 The idea for this app was shamelessly copied from
 [this java applet](http://stp.clarku.edu/simulations/approachtoequilibrium/index.html).
@@ -22,11 +18,15 @@ demonstrate the educational point in the subsequent description.
 
 http://www.lightandmatter.com/entropy?wait
 
-The basic demo of free expansion and the second law. Click the Start
-button to see the demonstration run. (This is the reason for the
-"wait" option in this url and the others below; in a lecture, it gives
-time to say something to the class before everything starts moving.)
-On the graphs you can see the system reaching equilibrium and
+A demo of free expansion and the second law. Click the Start button to
+see the demonstration run. (This is the reason for the "wait" option
+in this url and the others below; in a lecture, it gives time to say
+something to the class before everything starts moving.) The particles
+are all initially on one side of the box, and they then expand freely.
+Because the gas is ideal, the temperature stays the same during the expansion
+while the entropy increases.
+The graphs show the number of particles on each side of the box, which
+gives a quantitative view of the system reaching equilibrium and
 fluctuating away from equilibrium. By increasing the number of
 particles you can see that the fluctuations get smaller in relative
 terms. If you hit the "Reverse velocities" button you can see the
