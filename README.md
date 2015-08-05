@@ -6,6 +6,8 @@ of identical, classical, hard spheres moving around inside a two-dimensional box
 All collisions are perfectly elastic.
 To learn more about the specific mathematical properties of this sort of
 physical model, the keyword to search on is "dynamical billiards."
+You can run the app by going to the following URL:
+[http://www.lightandmatter.com/entropy](http://www.lightandmatter.com/entropy)
 
 The idea for this app was shamelessly copied from
 [this java applet](http://stp.clarku.edu/simulations/approachtoequilibrium/index.html).
@@ -18,7 +20,7 @@ Sample demonstrations
 Each of the following URLs will run the simulation with a certain setup, designed to
 demonstrate the educational point in the subsequent description.
 
-http://www.lightandmatter.com/entropy?wait
+[http://www.lightandmatter.com/entropy?wait](http://www.lightandmatter.com/entropy?wait)
 
 A demo of free expansion and the second law. Click the Start button to
 see the demonstration run. (This is the reason for the "wait" option
@@ -34,7 +36,7 @@ particles you can see that the fluctuations get smaller in relative
 terms. If you hit the "Reverse velocities" button you can see the
 system move back to its initial state, violating the second law. 
 
-http://www.lightandmatter.com/entropy?flock,wait
+[http://www.lightandmatter.com/entropy?flock,wait](http://www.lightandmatter.com/entropy?flock,wait)
 
 The particles are all initially concentrated in one region of space
 and moving in the same direction. Because this particular version of
@@ -44,29 +46,29 @@ confined to a small portion of the phase space in terms of momentum.
 This doesn't violate the second law, since the second law doesn't
 demand that the entropy increase at any nonzero rate. 
 
-http://www.lightandmatter.com/entropy?gy=2,flock,wait
+[http://www.lightandmatter.com/entropy?gy=2,flock,wait](http://www.lightandmatter.com/entropy?gy=2,flock,wait)
 
 Adding gravity in the y direction breaks part of the system's
 unrealistically perfect symmetry and causes the y momentum to
 equilibrate. 
 
-http://www.lightandmatter.com/entropy?gx=3,gy=2,flock,wait
+[http://www.lightandmatter.com/entropy?gx=3,gy=2,flock,wait](http://www.lightandmatter.com/entropy?gx=3,gy=2,flock,wait)
 
 Adding an x component to gravity makes all the degrees of freedom
 equilibrate. 
 
-http://www.lightandmatter.com/entropy?island,flock,wait
+[http://www.lightandmatter.com/entropy?island,flock,wait](http://www.lightandmatter.com/entropy?island,flock,wait)
 
 Another way of getting rid of the non-ergodic behavior is to add a
 circular island in the middle of the box. This is known as Sinai's
 billiards. The island acts as a diverging lens. 
 
-http://www.lightandmatter.com/entropy?temps,n=300,wait
+[http://www.lightandmatter.com/entropy?temps,n=300,wait](http://www.lightandmatter.com/entropy?temps,n=300,wait)
 
 The whole box is uniformly filled with particles, but with unequal
 temperatures on the two sides
 
-http://www.lightandmatter.com/entropy?temps,n=300,wait,mark
+[http://www.lightandmatter.com/entropy?temps,n=300,wait,mark](http://www.lightandmatter.com/entropy?temps,n=300,wait,mark)
 
 By adding ",mark" to any of these URLs, you can cause one of the
 particles to be marked in red. This allows you to look at ideas like
