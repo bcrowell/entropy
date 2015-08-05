@@ -4,6 +4,8 @@ Entropy
 This is a browser-based educational application that simulates an ideal gas consisting
 of identical, classical, hard spheres moving around inside a two-dimensional box.
 All collisions are perfectly elastic.
+To learn more about the specific mathematical properties of this sort of
+physical model, the keyword to search on is "dynamical billiards."
 
 The idea for this app was shamelessly copied from
 [this java applet](http://stp.clarku.edu/simulations/approachtoequilibrium/index.html).
@@ -99,21 +101,10 @@ is one that takes a numerical value for a parameter
 * island - put an island in the middle of the box, as in Sinai's billiards
 * mark - paint one ball a different color
 
-Getting ergodic behavior
-========================
-With the simplest default settings, the system is not ergodic. You can clearly see this
-behavior in flock mode, where the flock of balls never leaves its one tiny phase-space
-cell in momentum. One method of getting ergodic behavior is to use the island option.
-Another method that seems to work is to use nonzero values of both gx and gy.
-
-To learn about this sort of thing, the keyword to search on is "dynamical billiards."
 
 To do
 =====
 In temps mode, graph the temperatures of the two sides.
-
-Add pause option so that it starts in paused mode and gives me a time to explain after
-loading a particular link.
 
 Gory details
 ============
