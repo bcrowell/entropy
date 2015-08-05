@@ -41,6 +41,7 @@ is one that takes a numerical value for a parameter
 * gx - a numerical value for gravity in the x direction (default=0); units are box height per second squared
 * gy - similar for y
 * island - put an island in the middle of the box, as in Sinai's billiards
+* mark - paint one ball a different color
 
 Getting ergodic behavior
 ========================

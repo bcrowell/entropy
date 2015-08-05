@@ -16,6 +16,8 @@
 
   var n = 50; // number of particles
   var max_time = 10*60; // in seconds; be well-behaved, and don't eat up CPU forever
+  var time_of_last_redraw = 0;
+  var refresh_time = 30; // milliseconds
   var screen_scale; // pixels per unit of internal distance
   var collisions = true; // Simulate collisions? If not, then this is a noninteracting gas, and the following 
                          // data structures are not actually used.
@@ -28,6 +30,8 @@
   var gravity_y = 0.0;
   var island = false;
   var wait = false; // wait for the user to click to start the simulation
+  var mark_one_ball = false;
+  var debug_setup = false;
 
   // geometry of the box and balls
   var box_size = new Object;
@@ -113,6 +117,14 @@
         document.getElementById("pause").innerHTML = "Start";
         recognized = true;
       }
+      if (option=="mark") {
+        mark_one_ball = true;
+        recognized = true;
+      }
+      if (option=="debug_setup") {
+        debug_setup = true;
+        recognized = true;
+      }
     }
     if (!recognized) {console.log("unrecognized option "+option)}
   }
@@ -125,14 +137,14 @@
   // while simultaneously 2 crosses from B into A.
   // Making cells too small means that we have to make the time step small to avoid errors, or, with a fixed time step,
   // fast-moving balls can zip their way past what should have been a collision.
-  // Making cells too big leads to inefficiency;
-  var desired_balls_per_cell = 1000; // ... so try to guess what's a reasonable size
+  // Making cells too big leads to inefficiency...
+  var desired_balls_per_cell = 10; // ... so try to guess what's a reasonable size
   var ncell = new Object; // has members .x and .y; set by compute_cell_size, which is called by initialize()
   function compute_cell_size(ncell,box_size,n,desired_balls_per_cell) {
     var w = Math.sqrt(box_size.x * box_size.y * desired_balls_per_cell / n); // roughly what linear dimension we want
     ncell.x = make_natural_number(box_size.x/w);
     ncell.y = make_natural_number(box_size.y/w);
-    console.log("ncell="+ncell.x+","+ncell.y); // qwe
+    if (debug_setup) {ncell.x=4; ncell.y=2;}
   }
   function make_natural_number(x) {
     var m = Math.round(x);
@@ -148,7 +160,7 @@
   var cell_u = []; // (u,v), with u varying faster
   var cell_v = []; // (u,v), with v varying faster
   var occup = []; // an array of the form [[i0,j0,u0,v0], ... ], giving the i,j,u,v for each ball
-  function assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,n,xx,yy,box_size,ncell) {
+  function assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,occup,n,xx,yy,box_size,ncell) {
     var w = box_size.x/ncell.x; // width of each cell
     var h = box_size.y/ncell.y; // height
     for (var m=0; m<n; m++) {
@@ -192,6 +204,18 @@
   var cg;
   if (draw_graphs) {cg = graph_canvas.getContext("2d");}
 
+  animation_canvas.contentEditable=true; // make it able to take keyboard focus
+  animation_canvas.addEventListener('mouseover',function (event) {
+    event.target.focus(); // give it the focus whenever the mouse moves over it
+  },false);
+  animation_canvas.addEventListener('mouseout',function (event) {
+    event.target.blur();
+  },false);
+  animation_canvas.onkeypress = function(event) {
+    // This won't work in old IE.
+    if (event.key=="x") {vx[0]=2; vy[0]=0;} // for debugging, give the red ball a big kick
+  }
+
   document.getElementById("pause").addEventListener('click',handle_pause_button,false);
   document.getElementById("reverse").addEventListener('click',handle_reverse_button,false);
   document.getElementById("initialize").addEventListener('click',handle_initialize_button,false);
@@ -219,7 +243,8 @@
     }
   }
 
-  var TIME_INTERVAL = 0.03; // seconds; time interval for animation
+  var TIME_INTERVAL = 0.03; // seconds; time interval for each step of simulation; can be
+                            // shorter than the time between redrawings
   var t = 0; // total elapsed time, in seconds
   var timer = 0; // pause animation when this reaches max_time, then restart this timer; units of seconds
   var graph_points = [];
@@ -273,7 +298,7 @@
         cell_v[m] = m;
         occup[m] = [0,0,0,0];
       }
-      assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,n,x,y,box_size,ncell);
+      assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,occup,n,x,y,box_size,ncell);
     }
     redraw_background(c,animation_canvas.width,animation_canvas.height); // prepare to draw the balls as we place them
     var fails = new Object;
@@ -286,6 +311,7 @@
     if (flock) {mode = 'flock'}
     if (temps) {mode = 'temps'}
     if (mode=='normal') {
+      //if (debug_setup) {n=2}
       place_balls(n,x,y,0,0,0.5*box_size.x,box_size.y,ball_radius,fails);
       did = true;
     }
@@ -307,6 +333,12 @@
   }
 
   function place_balls(n,x,y,xmin,ymin,xmax,ymax,ball_radius,fails) {
+    if (debug_setup) {
+      x.push(1.7); y.push(0.5);
+      x.push(1.8); y.push(0.5);
+      x.push(0.5); y.push(0.2);
+      draw_balls(c,animation_canvas.width,animation_canvas.height,0,1);
+    }
     while (x.length<n) {
       var diam = 2*ball_radius;
       for (;;) {
@@ -341,6 +373,11 @@
 
   function initialize_motion(n,scale,vx,vy,mode,options) {
     // scale is a typical velocity scale, in units of s^-1
+    if (debug_setup) {
+      vx.push(0.1); vy.push(0);
+      vx.push(0); vy.push(0);
+      vx.push(0); vy.push(0);
+    }
     var i = 0;
     while (vx.length<n) {
       if (mode=='normal') {
@@ -386,7 +423,9 @@
   function handle_interval_timer() {
     if (timer>max_time) {stop_animation()}
     do_motion();
-    redraw();
+    if (current_time()-time_of_last_redraw>refresh_time) { // more than this time since last time the screen was redrawn
+      redraw();
+    }
   }
 
   function reflect_into(x,v,lo,hi) {
@@ -434,9 +473,13 @@
     var y2 = y[m];
     var bx = x2-x1; // current radius vector
     var by = y2-y1;
-    // Are they approaching, or receding?
     var cx = vx[m]-vx[l]; // current rate of change of radius vector
     var cy = vy[m]-vy[l];
+    // For efficiency, first do a quick rough check to find out whether they could possibly reach
+    // each other in this time interval.
+    if (Math.abs(bx)-diam>Math.abs(cx)*dt) {return false}
+    if (Math.abs(by)-diam>Math.abs(cy)*dt) {return false}
+    // Are they approaching, or receding?
     var bc = dot(bx,by,cx,cy); // dot product of b with c, i.e., of rel. r vector with rel. v vector
     if (bc>=0) {return false} // receding
     // Find out whether they will touch, and if so, the time interval tt after which they will touch.
@@ -488,13 +531,13 @@
     var collided = new Object; // associative array listing indices of balls that collided and therefore already had
                                // their motion modeled
     if (collisions) {
-      assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,n,x,y,box_size,ncell);
+      assign_balls_to_cells(cell_i,cell_j,cell_u,cell_v,occup,n,x,y,box_size,ncell);
+      // cell_i[...] = index of ball; array sorted with i varying faster
       var coll = []; // compile a list of pairs that may possibly collide because they're in the same or adjacent cells
       // The nested loops over (p,q) are not O(n^2), because we break out of the inner loop early.
       // (l,m) are indices of two balls that may collide.
       var diam = 2*ball_radius;
       for (var stripe=0; stripe<=3; stripe++) { // 0=i, 1=j, 2=u, 3=v
-        done = false;
         var s2;
         var c;
         if (stripe==0) {c=cell_i; s2=1;}
@@ -503,23 +546,21 @@
         if (stripe==3) {c=cell_v; s2=2;}
         for (var p=0; p<n-1; p++) {
           var l=c[p];
-          var e=occup[l][stripe]; // is i if stripe=0, etc.
-          var f=occup[l][s2];
+          var e=occup[l][stripe]; // the index that varies faster; is i if stripe=0, etc.
+          var f=occup[l][s2];     // the index that varies more slowly; is j if stripe=0, etc.
           for (var q=p+1; q<n; q++) {
             var m=c[q];
             var ee=occup[m][stripe]; 
             var ff=occup[m][s2];
-            if (ff != f) {done=true; break}
-            if (ee>e+1) {done=true; break}
+            if (ff != f || ee>e+1) {break}
             if (e==ee && stripe>0) {continue} // same cell, and already handled at stripe==0
             if (check_for_collision(x,y,vx,vy,l,m,TIME_INTERVAL,diam)) {
               collided[p] = 1;
               collided[q] = 1;
             }
-          }
-          if (done) {break}
-        }
-      }
+          } // end loop over q
+        } // end loop over p
+      } // end loop over stripe
     }
     var n_left = 0;
     for (var i=0; i<n; i++) {
@@ -558,6 +599,12 @@
   function redraw() {
     redraw_animation(c,animation_canvas.width,animation_canvas.height);
     if (draw_graphs) {redraw_graph(cg,graph_canvas.width,graph_canvas.height)}
+    time_of_last_redraw = current_time();
+  }
+
+  function current_time() {  // milliseconds since 1970
+    var date = new Date();
+    return date.getTime();
   }
 
   function redraw_animation(c,w,h) {
@@ -575,6 +622,7 @@
       c.beginPath();
       c.arc(xx,yy,r, 0,2*Math.PI,false);
       c.fillStyle = 'black';
+      if (mark_one_ball && i==0) { c.fillStyle = 'red' }
       c.fill();
       c.lineWidth = 5;
     }
