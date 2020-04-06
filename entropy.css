@@ -7,3 +7,4 @@
       display: block;  /* No floating content on sides */
     }
     canvas {outline: none; height: 300px; width: 600px} /* 2:1 aspect ratio */
+h1 {font-family: sans-serif; text-align:left; font-size: 16px;}
